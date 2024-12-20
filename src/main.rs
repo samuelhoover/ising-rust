@@ -1,12 +1,12 @@
-use full_palette::ORANGE_500;
 use plotters::prelude::*;
 use rand::rngs::SmallRng;
 use rand::{Rng, SeedableRng};
 
-const NCOLS: usize = 1_000;
-const NROWS: usize = 1_000;
+const NCOLS: usize = 2_000;
+const NROWS: usize = 2_000;
 const LEN: usize = NCOLS * NROWS;
-const STEPS: u32 = 1_000_000_000;
+const STEPS: u64 = 1_000_000_000;
+const J: i8 = 1;
 
 fn initialize_lattice(rng: &mut SmallRng) -> [i8; LEN] {
     let mut arr: [i8; LEN] = [0i8; LEN];
@@ -25,9 +25,9 @@ fn plot(&arr: &[i8; LEN], name: &str) {
 
     for (area, i) in areas.into_iter().zip(0..LEN) {
         if arr[i] == 1i8 {
-            let _ = area.fill(&BLUE);
+            let _ = area.fill(&RGBColor(216, 179, 101));
         } else {
-            let _ = area.fill(&ORANGE_500);
+            let _ = area.fill(&RGBColor(90, 180, 172));
         }
     }
 }
@@ -53,27 +53,33 @@ fn get_neigbors(&i: &usize) -> (usize, usize, usize, usize) {
     (up, down, left, right)
 }
 
-fn run(j: i8, beta: f32) -> () {
+fn precalculate_probs(beta: f32) -> [u32; 9] {
+    // 9 probabilities because Delta_H can only be -8, -6, ..., 0, ..., 6, 8
+    let mut probs: [u32; 9] = [0u32; 9];
+    let mut increment: f32 = 4.0;
+    for prob in &mut probs {
+        let p: f32 = f32::exp(-2.0 * beta * increment);
+        *prob = (2f32.powi(64) * p) as u32;
+        increment -= 1.0;
+    }
+
+    probs
+}
+
+fn run(beta: f32) -> () {
     let mut rng: SmallRng = SmallRng::from_entropy();
 
     // initialize lattice
     let mut arr: [i8; LEN] = initialize_lattice(&mut rng);
 
-    // pre-calculate the probabilities to use for conditional acceptance
-    // 9 probabilities because Delta_H can only be -8, -6, ..., 0, ..., 6, 8
-    let mut probs = [0u32; 9];
-    let mut increment: f32 = 4.0;
-    for prob in &mut probs {
-        let p = f32::exp(-2.0 * beta * increment);
-        *prob = (2f32.powi(64) * p) as u32;
-        increment -= 1.0;
-    }
+    // precalculate probabilities for conditional acceptance
+    let probs: [u32; 9] = precalculate_probs(beta);
 
     plot(&arr, "t_0.png");
 
-    let mut count_a: u32 = 0;
-    let mut count_ca: u32 = 0;
-    let mut count_r: u32 = 0;
+    let mut count_a: u64 = 0;
+    let mut count_ca: u64 = 0;
+    let mut count_r: u64 = 0;
     for _ in 0..STEPS {
         // randomly select lattice site
         let i: usize = rng.gen_range(0..LEN);
@@ -82,7 +88,7 @@ fn run(j: i8, beta: f32) -> () {
         let (up, down, left, right) = get_neigbors(&i);
 
         // calculate energy with and without flip
-        let energy_old: i8 = -j * arr[i] * (arr[up] + arr[down] + arr[left] + arr[right]);
+        let energy_old: i8 = -J * arr[i] * (arr[up] + arr[down] + arr[left] + arr[right]);
         // energy with flip is the negative of `energy_old`
 
         // perform/reject flip
@@ -97,15 +103,31 @@ fn run(j: i8, beta: f32) -> () {
         }
     }
 
-    println!("Accepted: {count_a}\nConditionally accepted: {count_ca}\nRejected: {count_r}");
+    // Print Monte Carlo simulation stats
+    let a: String = format!(
+        "Accepted:               {count_a} [{:.1}%]",
+        100.0 * count_a as f32 / STEPS as f32
+    );
+    let b: String = format!(
+        "Conditionally accepted: {count_ca} [{:.1}%]",
+        100.0 * count_ca as f32 / STEPS as f32
+    );
+    let c: String = format!(
+        "Rejected:               {count_r} [{:.1}%]",
+        100.0 * count_r as f32 / STEPS as f32
+    );
+    let out: String = [a, b, c].join("\n");
+    println!("{out}");
 
-    let name = format!("t_{STEPS}.png");
+    // Save final result
+    let suffix: u32 = STEPS.ilog10();
+    let prefix: u64 = STEPS / 10u64.pow(suffix);
+    let name: String = format!("t_{prefix}e{suffix}.png");
     plot(&arr, &name[..]);
 }
 
 fn main() {
-    let j: i8 = 1;
     let beta: f32 = 10.0;
 
-    run(j, beta);
+    run(beta);
 }
