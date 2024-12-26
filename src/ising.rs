@@ -4,7 +4,7 @@ use rand::rngs::SmallRng;
 use rand::{Rng, SeedableRng};
 
 #[inline]
-pub fn run(beta: f32) -> () {
+pub fn run(beta: f32, print: bool) -> () {
     let mut rng: SmallRng = SmallRng::from_entropy();
 
     // initialize lattice
@@ -42,20 +42,22 @@ pub fn run(beta: f32) -> () {
     }
 
     // Print Monte Carlo simulation stats
-    let a: String = format!(
-        "Accepted:               {count_a} [{:.1}%]",
-        100.0 * count_a as f32 / STEPS as f32
-    );
-    let b: String = format!(
-        "Conditionally accepted: {count_ca} [{:.1}%]",
-        100.0 * count_ca as f32 / STEPS as f32
-    );
-    let c: String = format!(
-        "Rejected:               {count_r} [{:.1}%]",
-        100.0 * count_r as f32 / STEPS as f32
-    );
-    let out: String = [a, b, c].join("\n");
-    println!("{out}");
+    if print {
+        let a: String = format!(
+            "\nAccepted:               {count_a} [{:.1}%]",
+            100.0 * count_a as f32 / STEPS as f32
+        );
+        let b: String = format!(
+            "Conditionally accepted: {count_ca} [{:.1}%]",
+            100.0 * count_ca as f32 / STEPS as f32
+        );
+        let c: String = format!(
+            "Rejected:               {count_r} [{:.1}%]\n",
+            100.0 * count_r as f32 / STEPS as f32
+        );
+        let out: String = [a, b, c].join("\n");
+        println!("{out}");
+    }
 
     // Save final result
     let suffix: u32 = STEPS.ilog10();
