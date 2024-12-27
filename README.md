@@ -9,6 +9,10 @@ seconds on M1 Pro processor.
 |--|--|
 | <img src="t_0.png" alt="Inital, random configuration lattice" width="400"> | <img src="t_1e9.png" alt="Final configuration lattice" width="400"> |
 
+| Time evolution of relative spin count |
+|--|
+| <img src="count.png" alt="Time evolution of relative spin count" width="400"> |
+
 To play around with the lattice, parameters, constants, *etc.*, modify
 `src/main.rs` and call `cargo run` to run. Keep in mind that this simulation
 will take considerably longer than the optimized executable version. To obtain
