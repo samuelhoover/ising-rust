@@ -1,8 +1,8 @@
 # 2d Ising model in Rust
 
 Ising model on a 2,000 x 2,000 square lattice, in 1B steps, simulated *via*
-Monte Carlo, implemented in Rust. Compiled executable completes simulation in 6
-seconds on M1 Pro processor.
+Monte Carlo, implemented in Rust. Compiled executable completes simulation in
+less than 6 seconds on M1 Pro processor.
 
 <!-- markdownlint-disable MD033 -->
 | Initial lattice | Final lattice |
