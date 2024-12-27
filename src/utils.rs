@@ -1,4 +1,5 @@
 use crate::consts::*;
+use plotters::data::float::FloatPrettyPrinter;
 use plotters::prelude::*;
 use rand::rngs::SmallRng;
 use rand::Rng;
@@ -13,7 +14,7 @@ pub fn initialize_lattice(rng: &mut SmallRng) -> [i8; LEN] {
     arr
 }
 
-pub fn plot(&arr: &[i8; LEN], name: &str) {
+pub fn plot_lattice(&arr: &[i8; LEN], name: &str) {
     let root = BitMapBackend::new(name, (NCOLS as u32, NROWS as u32)).into_drawing_area();
 
     let areas = root.split_evenly((NCOLS, NROWS));
@@ -27,11 +28,53 @@ pub fn plot(&arr: &[i8; LEN], name: &str) {
     }
 }
 
+pub fn plot_count(count: Vec<i32>, name: &str) -> Result<(), Box<dyn std::error::Error>> {
+    // plot time evolution of relative spin count
+
+    let root = BitMapBackend::new(name, (1280, 960)).into_drawing_area();
+    root.fill(&WHITE)?;
+
+    FloatPrettyPrinter {
+        allow_scientific: true,
+        min_decimal: 0,
+        max_decimal: 0,
+    };
+
+    let min_count: i32 = *count.iter().min().unwrap();
+    let max_count: i32 = *count.iter().max().unwrap();
+    let mut chart = ChartBuilder::on(&root)
+        .caption("Relative spin count", ("san-serif", 48).into_font())
+        .margin(50)
+        .x_label_area_size(5i32.percent_width())
+        .y_label_area_size(10i32.percent_height())
+        .build_cartesian_2d(0..STEPS, min_count..max_count)?;
+
+    chart
+        .configure_mesh()
+        .disable_x_mesh()
+        .disable_y_mesh()
+        .x_desc("Steps [x 100,000,000]")
+        .y_desc(">0 indicates more positive spins")
+        .axis_desc_style(("san-serif", 32))
+        .label_style(("san-serif", 24))
+        .x_label_formatter(&|x| format!("{}", x / 100_000_000))
+        .draw()?;
+
+    chart.draw_series(LineSeries::new(
+        (0..).zip(count.iter()).map(|(x, y)| (x, *y)),
+        &BLACK,
+    ))?;
+
+    root.present()
+        .expect("Unable to write count evolution to file!");
+
+    Ok(())
+}
+
 pub fn get_neigbors(&i: &usize) -> (usize, usize, usize, usize) {
     // Get neighbors using periodic boundary conditions (PBCs) if necessary
-    //
-    // `if` statements contains neighbors when applying PBC, `else` statements contain actual
-    // neighbors
+
+    // `if` statements contains neighbors from PBC, `else` for actual neighbors
     let up: usize = if i <= (NCOLS - 1) {
         i + LEN - NCOLS
     } else {
